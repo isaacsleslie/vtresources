@@ -23,8 +23,8 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 WORKDIR /var/www/html
 COPY . .
 
-# Ensure a base environment file exists so the framework doesn't panic
-RUN cp .env.example .env
+# Fix: Create a pristine environment file so Laravel reads the Render Dashboard variables dynamically
+RUN echo "APP_ENV=production" > .env
 
 # Copy compiled assets from Step 1
 COPY --from=asset-builder /app/public/js ./public/js
