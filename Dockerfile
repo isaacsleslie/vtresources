@@ -1,8 +1,10 @@
 # Step 1: Build Frontend Assets using Node
 FROM node:16 AS asset-builder
 WORKDIR /app
-COPY package*.json webpack.mix.js ./
+# Copy all package files and structural mix files for the asset builder
+COPY package*.json webpack.mix.js tailwind.config.js *config.js ./
 COPY resources/ ./resources/
+# Run npm installation and compile production assets
 RUN npm install && npm run prod
 
 # Step 2: Set up PHP 8.2 and Web Server
@@ -31,8 +33,8 @@ COPY --from=asset-builder /app/public/css ./public/css
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Install backend dependencies with platform safety flags
-RUN composer install --no-interaction --optimize-autoloader --ignore-platform-req=php
+# CRITICAL FIX: Update backend dependencies directly to bypass frozen lockfile conflicts
+RUN composer update --no-interaction --optimize-autoloader --ignore-platform-reqs
 
 # Point Apache to Laravel's public folder
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
