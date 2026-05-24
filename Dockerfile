@@ -11,7 +11,7 @@ FROM php:8.1-apache
 # Install required system libraries and PHP extensions from the readme
 RUN apt-get update && apt-get install -y \
     git unzip libzip-dev libpng-dev libjpeg-dev libfreetype6-dev libxml2-dev \
-    && docker-php-ext-install bcmath curl ctype fileinfo opcache pdo pdo_mysql zip xml
+    && docker-php-ext-install bcmath ctype fileinfo opcache pdo pdo_mysql zip xml
 
 # Enable Apache Mod_Rewrite (Requested in readme web server config)
 RUN a2enmod rewrite
