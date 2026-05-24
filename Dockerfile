@@ -5,15 +5,15 @@ COPY package*.json webpack.mix.js ./
 COPY resources/ ./resources/
 RUN npm install && npm run prod
 
-# Step 2: Set up PHP and Web Server
-FROM php:8.1-apache
+# Step 2: Set up PHP 8.2 and Web Server
+FROM php:8.2-apache
 
-# Install required system libraries and PHP extensions from the readme
+# Install required system libraries and PHP extensions
 RUN apt-get update && apt-get install -y \
-    git unzip libzip-dev libpng-dev libjpeg-dev libfreetype6-dev libxml2-dev \
-    && docker-php-ext-install bcmath ctype fileinfo opcache pdo pdo_mysql zip xml
+    git unzip libzip-dev libpng-dev libjpeg-dev libfreetype6-dev libxml2-dev libonig-dev \
+    && docker-php-ext-install bcmath ctype fileinfo opcache pdo pdo_mysql zip xml mbstring
 
-# Enable Apache Mod_Rewrite (Requested in readme web server config)
+# Enable Apache Mod_Rewrite
 RUN a2enmod rewrite
 
 # Setup Composer
@@ -27,11 +27,12 @@ COPY . .
 COPY --from=asset-builder /app/public/js ./public/js
 COPY --from=asset-builder /app/public/css ./public/css
 
-# Install backend dependencies
-RUN composer install --no-interaction --optimize-autoloader
+# Set comprehensive permissions so composer scripts can execute safely
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Set permissions as requested in readme (chmod 755 equivalent for web server user)
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+# Install backend dependencies with platform safety flags
+RUN composer install --no-interaction --optimize-autoloader --ignore-platform-req=php
 
 # Point Apache to Laravel's public folder
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
