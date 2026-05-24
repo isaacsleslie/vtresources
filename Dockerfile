@@ -5,8 +5,8 @@ COPY package*.json webpack.mix.js ./
 COPY resources/ ./resources/
 RUN npm install && npm run prod
 
-# Step 2: Set up PHP 8.2 and Web Server
-FROM php:8.2-apache
+# Step 2: Use PHP 7.4 Apache to match the codebase version safely
+FROM php:7.4-apache
 
 # Install required system libraries and PHP extensions
 RUN apt-get update && apt-get install -y \
@@ -17,25 +17,25 @@ RUN apt-get update && apt-get install -y \
 RUN a2enmod rewrite
 
 # Setup Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2.2 /usr/bin/composer /usr/bin/composer
 
 # Copy code into web root
 WORKDIR /var/www/html
 COPY . .
 
-# Fix: Create a pristine environment file so Laravel reads the Render Dashboard variables dynamically
-RUN echo "APP_ENV=production" > .env
+# Ensure an environment file exists
+RUN cp .env.example .env || echo "APP_ENV=production" > .env
 
 # Copy compiled assets from Step 1
 COPY --from=asset-builder /app/public/js ./public/js
 COPY --from=asset-builder /app/public/css ./public/css
 
-# Set comprehensive permissions so composer scripts can execute safely
+# Set comprehensive permissions
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Update backend dependencies directly to bypass frozen lockfile conflicts
-RUN composer update --no-interaction --optimize-autoloader --ignore-platform-reqs
+# Install dependencies matching PHP 7.4 specs cleanly
+RUN composer install --no-interaction --optimize-autoloader --ignore-platform-reqs
 
 # Point Apache to Laravel's public folder
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
