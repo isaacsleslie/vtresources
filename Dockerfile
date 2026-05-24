@@ -1,7 +1,6 @@
 # Step 1: Build Frontend Assets using Node
 FROM node:16 AS asset-builder
 WORKDIR /app
-# Only copy files that explicitly exist in this repo's root
 COPY package*.json webpack.mix.js ./
 COPY resources/ ./resources/
 RUN npm install && npm run prod
@@ -39,5 +38,8 @@ RUN composer update --no-interaction --optimize-autoloader --ignore-platform-req
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+
+# Turn off public error reporting to suppress deprecated syntax notices
+RUN echo "display_errors = Off\nerror_reporting = E_ALL & ~E_DEPRECATED & ~E_NOTICE" > /usr/local/etc/php/conf.d/error-logging.ini
 
 EXPOSE 80
