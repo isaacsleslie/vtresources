@@ -42,8 +42,4 @@ ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
-# Fix: Secure multi-line echo to prevent initialization parsing panics
-RUN echo "display_errors = Off" > /usr/local/etc/php/conf.d/error-logging.ini \
-    && echo "error_reporting = E_ALL & ~E_DEPRECATED & ~E_NOTICE" >> /usr/local/etc/php/conf.d/error-logging.ini
-
 EXPOSE 80
