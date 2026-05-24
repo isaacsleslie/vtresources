@@ -45,4 +45,7 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.
 # Turn off public error reporting to suppress deprecated syntax notices
 RUN echo "display_errors = Off\nerror_reporting = E_ALL & ~E_DEPRECATED & ~E_NOTICE" > /usr/local/etc/php/conf.d/error-logging.ini
 
+# Dynamically clear any frozen configuration blocks right before Apache launches
+RUN php artisan config:clear || true
+
 EXPOSE 80
