@@ -42,7 +42,11 @@ ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
+# CRITICAL FIX: Overwrite the global php.ini settings inside the base image container 
+# This forcefully turns off deprecation logging at the engine level before booting code.
+RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
+    && sed -i 's/error_reporting = E_ALL/error_reporting = E_ALL \& ~E_DEPRECATED \& ~E_NOTICE/g' "$PHP_INI_DIR/php.ini"
+
 EXPOSE 80
 
-# Run standard Apache foreground loop safely
 CMD ["apache2-foreground"]
