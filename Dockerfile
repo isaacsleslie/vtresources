@@ -47,5 +47,5 @@ RUN php artisan config:clear || true
 
 EXPOSE 80
 
-# The Explicit Fix: Pass connection parameters directly as standard string literals to prevent parsing exit flags
-CMD ["sh", "-c", "mysql --host=${DB_HOST} --port=${DB_PORT} --user=${DB_USERNAME} --password=${DB_PASSWORD} ${DB_DATABASE} < database/dump/*.sql && apache2-foreground"]
+# The Absolute Fix: Point explicitly to the exact installation script file name
+CMD ["sh", "-c", "mysql --host=${DB_HOST} --port=${DB_PORT} --user=${DB_USERNAME} --password=${DB_PASSWORD} ${DB_DATABASE} < database/dump/open_referral_installation.sql && apache2-foreground"]
