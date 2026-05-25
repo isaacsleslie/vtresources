@@ -8,7 +8,7 @@ RUN npm install && npm run prod
 # Step 2: Set up PHP 8.2 and Web Server
 FROM php:8.2-apache
 
-# Install required system libraries, PHP extensions, AND the default mysql-client
+# Install required system libraries, PHP extensions, AND mysql-client
 RUN apt-get update && apt-get install -y \
     git unzip libzip-dev libpng-dev libjpeg-dev libfreetype6-dev libxml2-dev libonig-dev default-mysql-client \
     && docker-php-ext-install bcmath ctype fileinfo opcache pdo pdo_mysql zip xml mbstring
@@ -45,11 +45,7 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.
 # Clean up any leftover configuration caches
 RUN php artisan config:clear || true
 
-# Turn off public error reporting to suppress deprecated syntax notices
-RUN echo "display_errors = Off" > /usr/local/etc/php/conf.d/error-logging.ini \
-    && echo "error_reporting = E_ALL & ~E_DEPRECATED & ~E_NOTICE" >> /usr/local/etc/php/conf.d/error-logging.ini
-
 EXPOSE 80
 
-# THE OFFICIAL FIX: Dynamically import the required database dump on container startup, then start Apache
-CMD ["sh", "-c", "mysql -h $DB_HOST -P $DB_PORT -u $DB_USERNAME -p$DB_PASSWORD $DB_DATABASE < database/dump/*.sql && apache2-foreground"]
+# The Explicit Fix: Pass connection parameters directly as standard string literals to prevent parsing exit flags
+CMD ["sh", "-c", "mysql --host=${DB_HOST} --port=${DB_PORT} --user=${DB_USERNAME} --password=${DB_PASSWORD} ${DB_DATABASE} < database/dump/*.sql && apache2-foreground"]
