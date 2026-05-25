@@ -8,9 +8,9 @@ RUN npm install && npm run prod
 # Step 2: Set up PHP 8.2 and Web Server
 FROM php:8.2-apache
 
-# Install required system libraries, PHP extensions, AND mysql-client
+# Install required system libraries and PHP extensions
 RUN apt-get update && apt-get install -y \
-    git unzip libzip-dev libpng-dev libjpeg-dev libfreetype6-dev libxml2-dev libonig-dev default-mysql-client \
+    git unzip libzip-dev libpng-dev libjpeg-dev libfreetype6-dev libxml2-dev libonig-dev \
     && docker-php-ext-install bcmath ctype fileinfo opcache pdo pdo_mysql zip xml mbstring
 
 # Enable Apache Mod_Rewrite
@@ -34,7 +34,7 @@ COPY --from=asset-builder /app/public/css ./public/css
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Install backend dependencies smoothly
+# Install backend dependencies smoothly matching the lockfile
 RUN composer install --no-interaction --optimize-autoloader --ignore-platform-reqs
 
 # Point Apache to Laravel's public folder
@@ -42,10 +42,7 @@ ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
-# Clean up any leftover configuration caches
-RUN php artisan config:clear || true
-
 EXPOSE 80
 
-# The Absolute Fix: Point explicitly to the exact installation script file name
-CMD ["sh", "-c", "mysql --host=${DB_HOST} --port=${DB_PORT} --user=${DB_USERNAME} --password=${DB_PASSWORD} ${DB_DATABASE} < database/dump/open_referral_installation.sql && apache2-foreground"]
+# Run standard Apache foreground loop safely
+CMD ["apache2-foreground"]
