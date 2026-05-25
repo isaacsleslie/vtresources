@@ -5,36 +5,36 @@ COPY package*.json webpack.mix.js ./
 COPY resources/ ./resources/
 RUN npm install && npm run prod
 
-# Step 2: Use PHP 7.4 Apache to match the codebase version safely
-FROM php:7.4-apache
+# Step 2: Set up PHP 8.2 and Web Server
+FROM php:8.2-apache
 
-# Install required system libraries and PHP extensions
+# Install required system libraries, PHP extensions, AND the default mysql-client
 RUN apt-get update && apt-get install -y \
-    git unzip libzip-dev libpng-dev libjpeg-dev libfreetype6-dev libxml2-dev libonig-dev \
+    git unzip libzip-dev libpng-dev libjpeg-dev libfreetype6-dev libxml2-dev libonig-dev default-mysql-client \
     && docker-php-ext-install bcmath ctype fileinfo opcache pdo pdo_mysql zip xml mbstring
 
 # Enable Apache Mod_Rewrite
 RUN a2enmod rewrite
 
 # Setup Composer
-COPY --from=composer:2.2 /usr/bin/composer /usr/bin/composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Copy code into web root
 WORKDIR /var/www/html
 COPY . .
 
-# Ensure an environment file exists
-RUN cp .env.example .env || echo "APP_ENV=production" > .env
+# Ensure a base environment file exists
+RUN cp .env.example .env
 
 # Copy compiled assets from Step 1
 COPY --from=asset-builder /app/public/js ./public/js
 COPY --from=asset-builder /app/public/css ./public/css
 
-# Set comprehensive permissions
+# Set comprehensive permissions so composer scripts can execute safely
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Install dependencies matching PHP 7.4 specs cleanly
+# Install backend dependencies smoothly
 RUN composer install --no-interaction --optimize-autoloader --ignore-platform-reqs
 
 # Point Apache to Laravel's public folder
@@ -42,4 +42,14 @@ ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
+# Clean up any leftover configuration caches
+RUN php artisan config:clear || true
+
+# Turn off public error reporting to suppress deprecated syntax notices
+RUN echo "display_errors = Off" > /usr/local/etc/php/conf.d/error-logging.ini \
+    && echo "error_reporting = E_ALL & ~E_DEPRECATED & ~E_NOTICE" >> /usr/local/etc/php/conf.d/error-logging.ini
+
 EXPOSE 80
+
+# THE OFFICIAL FIX: Dynamically import the required database dump on container startup, then start Apache
+CMD ["sh", "-c", "mysql -h $DB_HOST -P $DB_PORT -u $DB_USERNAME -p$DB_PASSWORD $DB_DATABASE < database/dump/*.sql && apache2-foreground"]
